@@ -1,24 +1,55 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Toaster } from "sonner";
+import { BackToTop, Navbar, SocialRail } from "@/components/portfolio/Navbar";
+import { Hero } from "@/components/portfolio/Hero";
+import {
+  About,
+  Achievements,
+  CareerInterests,
+  Education,
+  Experience,
+  Projects,
+  Skills,
+} from "@/components/portfolio/Sections";
+import { Contact, Footer } from "@/components/portfolio/Contact";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+const title = "Pankaja Harini R. S | Aspiring Software Engineer Portfolio";
+const description =
+  "Portfolio of Pankaja Harini R. S — B.Tech Information Technology student at SRM Easwari Engineering College, Java and web development enthusiast open to internships.";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "profile" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <>
+      <Navbar />
+      <SocialRail />
+      <main>
+        <Hero />
+        <About />
+        <Education />
+        <Skills />
+        <Experience />
+        <Achievements />
+        <Projects />
+        <CareerInterests />
+        <Contact />
+      </main>
+      <Footer />
+      <BackToTop />
+      <Toaster position="bottom-center" />
+    </>
   );
 }
