@@ -5,6 +5,7 @@ import {
   Braces,
   Brain,
   Briefcase,
+  CheckCircle2,
   Code2,
   Compass,
   ExternalLink,
@@ -27,27 +28,43 @@ import {
 import medilink from "@/assets/medilink.jpg";
 import { Reveal, Section } from "./Reveal";
 
-function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const [value, setValue] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
+function useInView<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries[0].isIntersecting) return;
-      observer.disconnect();
-      const start = performance.now();
-      const tick = (now: number) => {
-        const p = Math.min((now - start) / 1400, 1);
-        setValue(Math.round(to * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25 },
+    );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [to]);
+  }, []);
+
+  return { ref, inView };
+}
+
+function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
+  const [value, setValue] = useState(0);
+  const { ref, inView } = useInView<HTMLSpanElement>();
+
+  useEffect(() => {
+    if (!inView) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / 1400, 1);
+      setValue(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [inView, to]);
 
   return (
     <span ref={ref}>
@@ -86,10 +103,15 @@ export function About() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {QUALITIES.map((q, i) => (
           <Reveal key={q.title} delay={i * 60}>
-            <article className="glass h-full rounded-2xl p-5 transition-transform duration-300 hover:-translate-y-1">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
-                <q.icon size={20} />
-              </span>
+            <article className="premium-card glass group h-full rounded-2xl p-5">
+              <div className="flex items-start justify-between">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary transition-colors duration-300 group-hover:bg-gradient-primary group-hover:text-primary-foreground">
+                  <q.icon size={20} />
+                </span>
+                <span className="font-display text-xl font-bold text-muted-foreground/25">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
               <h3 className="mt-4 text-base font-semibold">{q.title}</h3>
               <p className="mt-1.5 text-sm text-muted-foreground">{q.text}</p>
             </article>
@@ -97,21 +119,56 @@ export function About() {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {STATS.map((s, i) => (
-          <Reveal key={s.label} delay={i * 70}>
-            <div className="glass rounded-2xl p-5 text-center">
-              <p className="font-display text-3xl font-bold text-gradient">
+      <Reveal delay={120}>
+        <div className="glass mt-6 grid overflow-hidden rounded-3xl sm:grid-cols-2 lg:grid-cols-4">
+          {STATS.map((s) => (
+            <div
+              key={s.label}
+              className="border-b border-border/60 px-6 py-7 text-center last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+            >
+              <p className="font-display text-4xl font-bold text-gradient">
                 <Counter to={s.value} suffix={s.suffix} />
               </p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
+              <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 {s.label}
               </p>
             </div>
-          </Reveal>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Reveal>
     </Section>
+  );
+}
+
+function TimelineItem({
+  icon: Icon,
+  meta,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: typeof GraduationCap;
+  meta: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative pl-10 sm:pl-14">
+      <span className="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-soft animate-pulse-ring sm:h-10 sm:w-10">
+        <Icon size={16} />
+      </span>
+      <Reveal>
+        <article className="premium-card glass rounded-2xl p-6 sm:p-7">
+          <span className="inline-flex rounded-full bg-accent px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            {meta}
+          </span>
+          <h3 className="mt-3 text-xl font-semibold sm:text-2xl">{title}</h3>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+          {children}
+        </article>
+      </Reveal>
+    </div>
   );
 }
 
@@ -123,26 +180,28 @@ export function Education() {
       title="Academic journey"
       description="A strong academic foundation in information technology, programming and software engineering."
     >
-      <div className="relative border-l border-border pl-8">
-        <Reveal>
-          <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
-            <GraduationCap size={13} />
-          </span>
-          <article className="glass rounded-2xl p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-              2025 – 2029 (Expected)
-            </p>
-            <h3 className="mt-2 text-xl font-semibold">SRM Easwari Engineering College</h3>
-            <p className="text-sm text-muted-foreground">
-              Bachelor of Technology — Information Technology
-            </p>
-            <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
-              <li>• Current undergraduate student</li>
-              <li>• Building strong foundations in programming and software engineering</li>
-              <li>• Learning modern technologies and problem solving</li>
-            </ul>
-          </article>
-        </Reveal>
+      <div className="relative">
+        <span className="absolute left-4 top-2 hidden h-[calc(100%-1rem)] w-px bg-gradient-to-b from-primary/60 via-primary/20 to-transparent sm:left-5 sm:block" />
+        <TimelineItem
+          icon={GraduationCap}
+          meta="2025 – 2029 (Expected)"
+          title="SRM Easwari Engineering College"
+          subtitle="Bachelor of Technology — Information Technology"
+        >
+          <ul className="mt-5 grid gap-2.5 text-sm text-muted-foreground sm:grid-cols-2">
+            {[
+              "Current undergraduate student",
+              "Strong foundations in programming & software engineering",
+              "Learning modern technologies and problem solving",
+              "Active participation in campus activities",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2.5">
+                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </TimelineItem>
       </div>
     </Section>
   );
@@ -185,6 +244,25 @@ const SOFT_SKILLS = [
   { icon: BookOpen, label: "Continuous Learning" },
 ];
 
+function SkillBar({ name, level, delay }: { name: string; level: number; delay: number }) {
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  return (
+    <div ref={ref}>
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">{name}</span>
+        <span className="font-display text-xs font-semibold text-primary">{level}%</span>
+      </div>
+      <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-gradient-primary transition-[width] duration-[1200ms] ease-out"
+          style={{ width: inView ? `${level}%` : "0%", transitionDelay: `${delay}ms` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function Skills() {
   return (
     <Section
@@ -196,27 +274,16 @@ export function Skills() {
       <div className="grid gap-4 lg:grid-cols-2">
         {SKILL_GROUPS.map((group, gi) => (
           <Reveal key={group.title} delay={gi * 80}>
-            <article className="glass h-full rounded-2xl p-6">
+            <article className="premium-card glass h-full rounded-2xl p-6 sm:p-7">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary">
-                  <group.icon size={18} />
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-soft">
+                  <group.icon size={19} />
                 </span>
                 <h3 className="text-lg font-semibold">{group.title}</h3>
               </div>
-              <div className="mt-5 grid gap-4">
-                {group.skills.map((skill) => (
-                  <div key={skill.name}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{skill.name}</span>
-                      <span className="text-muted-foreground">{skill.level}%</span>
-                    </div>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-gradient-primary transition-[width] duration-1000"
-                        style={{ width: `${skill.level}%` }}
-                      />
-                    </div>
-                  </div>
+              <div className="mt-6 grid gap-5">
+                {group.skills.map((skill, si) => (
+                  <SkillBar key={skill.name} {...skill} delay={si * 120} />
                 ))}
               </div>
             </article>
@@ -224,18 +291,18 @@ export function Skills() {
         ))}
 
         <Reveal delay={160}>
-          <article className="glass h-full rounded-2xl p-6">
+          <article className="premium-card glass h-full rounded-2xl p-6 sm:p-7">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary">
-                <Lightbulb size={18} />
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
+                <Lightbulb size={19} />
               </span>
               <h3 className="text-lg font-semibold">Currently Learning</h3>
             </div>
-            <ul className="mt-5 grid gap-3">
+            <ul className="mt-6 grid gap-3">
               {LEARNING.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm"
+                  className="flex items-start gap-3 rounded-xl border border-border/70 bg-card/40 p-3.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent/40"
                 >
                   <Sparkles size={16} className="mt-0.5 shrink-0 text-primary" />
                   {item}
@@ -246,18 +313,18 @@ export function Skills() {
         </Reveal>
 
         <Reveal delay={220}>
-          <article className="glass h-full rounded-2xl p-6">
+          <article className="premium-card glass h-full rounded-2xl p-6 sm:p-7">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary">
-                <Handshake size={18} />
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
+                <Handshake size={19} />
               </span>
               <h3 className="text-lg font-semibold">Soft Skills</h3>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap gap-2">
               {SOFT_SKILLS.map((s) => (
                 <span
                   key={s.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-medium transition-colors hover:border-primary/50 hover:text-primary"
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:text-primary hover:shadow-soft"
                 >
                   <s.icon size={15} className="text-primary" />
                   {s.label}
@@ -279,27 +346,30 @@ export function Experience() {
       title="Involvement beyond the classroom"
       description="Leadership, volunteering and collaboration experiences that shape how I work with people."
     >
-      <div className="relative border-l border-border pl-8">
-        <Reveal>
-          <span className="absolute -left-[13px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
-            <Briefcase size={13} />
-          </span>
-          <article className="glass rounded-2xl p-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Club Member
-            </p>
-            <h3 className="mt-2 text-xl font-semibold">ENN Club Member</h3>
-            <p className="text-sm text-muted-foreground">SRM Easwari Engineering College</p>
-            <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-              <p>• Active member of the ENN Club</p>
-              <p>• Enthusiastic volunteer</p>
-              <p>• Participated in collaborative activities</p>
-              <p>• Interested in organizing events</p>
-              <p>• Enjoy working with teams</p>
-              <p>• Passionate about real-world learning</p>
-            </div>
-          </article>
-        </Reveal>
+      <div className="relative">
+        <span className="absolute left-4 top-2 hidden h-[calc(100%-1rem)] w-px bg-gradient-to-b from-primary/60 via-primary/20 to-transparent sm:left-5 sm:block" />
+        <TimelineItem
+          icon={Briefcase}
+          meta="Club Member"
+          title="ENN Club Member"
+          subtitle="SRM Easwari Engineering College"
+        >
+          <div className="mt-5 grid gap-2.5 text-sm text-muted-foreground sm:grid-cols-2">
+            {[
+              "Active member of the ENN Club",
+              "Enthusiastic volunteer",
+              "Participated in collaborative activities",
+              "Interested in organizing events",
+              "Enjoy working with teams",
+              "Passionate about real-world learning",
+            ].map((item) => (
+              <p key={item} className="flex items-start gap-2.5">
+                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
+                {item}
+              </p>
+            ))}
+          </div>
+        </TimelineItem>
       </div>
     </Section>
   );
@@ -324,15 +394,26 @@ export function Achievements() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ACHIEVEMENTS.map((a, i) => (
           <Reveal key={a.title} delay={i * 70}>
-            <article className="glass h-full rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-1">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
-                <a.icon size={19} />
+            <article className="premium-card glass relative h-full rounded-2xl p-6">
+              <span className="dot-grid pointer-events-none absolute right-0 top-0 h-24 w-24 opacity-40" />
+              <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
+                <a.icon size={20} />
               </span>
-              <h3 className="mt-4 text-base font-semibold">{a.title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">{a.text}</p>
+              <h3 className="relative mt-5 text-base font-semibold">{a.title}</h3>
+              <p className="relative mt-1.5 text-sm text-muted-foreground">{a.text}</p>
             </article>
           </Reveal>
         ))}
+
+        <Reveal delay={ACHIEVEMENTS.length * 70}>
+          <article className="premium-card glass flex h-full flex-col justify-center rounded-2xl bg-gradient-primary p-6 text-primary-foreground">
+            <Sparkles size={22} />
+            <h3 className="mt-4 text-lg font-semibold">More on the way</h3>
+            <p className="mt-1.5 text-sm opacity-90">
+              Continuously participating in events, hackathons and technical competitions.
+            </p>
+          </article>
+        </Reveal>
       </div>
     </Section>
   );
@@ -368,21 +449,27 @@ export function Projects() {
       description="Applying what I learn to build practical, user-focused applications."
     >
       <Reveal>
-        <article className="glass overflow-hidden rounded-3xl">
+        <article className="premium-card glass overflow-hidden rounded-3xl">
           <div className="grid lg:grid-cols-2">
-            <img
-              src={medilink}
-              alt="MediLink healthcare platform dashboard preview"
-              loading="lazy"
-              width={1280}
-              height={800}
-              className="h-full w-full object-cover"
-            />
-            <div className="p-6 sm:p-8">
+            <div className="relative min-h-64 overflow-hidden">
+              <img
+                src={medilink}
+                alt="MediLink healthcare platform dashboard preview"
+                loading="lazy"
+                width={1280}
+                height={800}
+                className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent lg:bg-gradient-to-r" />
+              <span className="glass absolute bottom-4 left-4 rounded-full px-3.5 py-1.5 text-xs font-semibold">
+                2025 · Academic build
+              </span>
+            </div>
+            <div className="p-6 sm:p-9">
               <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-primary">
                 <Layers size={13} /> Web Application
               </span>
-              <h3 className="mt-4 text-2xl font-bold">
+              <h3 className="mt-4 text-2xl font-bold sm:text-3xl">
                 MediLink – AI Powered Unified Healthcare Platform
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -390,9 +477,12 @@ export function Projects() {
                 ecosystem with AI-powered features for patients and healthcare professionals.
               </p>
 
-              <div className="mt-5 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
+              <div className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                 {FEATURES.map((f) => (
-                  <p key={f}>• {f}</p>
+                  <p key={f} className="flex items-start gap-2">
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-primary" />
+                    {f}
+                  </p>
                 ))}
               </div>
 
@@ -400,7 +490,7 @@ export function Projects() {
                 {STACK.map((t) => (
                   <span
                     key={t}
-                    className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+                    className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                   >
                     {t}
                   </span>
@@ -416,7 +506,7 @@ export function Projects() {
                 </a>
                 <a
                   href="#projects"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-accent"
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent"
                 >
                   <Github size={15} /> GitHub
                 </a>
@@ -447,14 +537,14 @@ export function CareerInterests() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {INTERESTS.map((c, i) => (
           <Reveal key={c.title} delay={i * 70}>
-            <article className="glass h-full rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-1">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
-                <c.icon size={19} />
+            <article className="premium-card glass group h-full rounded-2xl p-6">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-primary transition-colors duration-300 group-hover:bg-gradient-primary group-hover:text-primary-foreground">
+                <c.icon size={20} />
               </span>
-              <h3 className="mt-4 text-base font-semibold">{c.title}</h3>
+              <h3 className="mt-5 text-base font-semibold">{c.title}</h3>
               <p className="mt-1.5 text-sm text-muted-foreground">{c.text}</p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                <Award size={13} /> Open
+              <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                <Award size={12} /> Open
               </span>
             </article>
           </Reveal>
