@@ -7,9 +7,9 @@
 // 4. Account -> General -> copy the Public Key
 // Paste all three below. These are publishable values, safe in the code.
 
-export const EMAILJS_SERVICE_ID = "";
-export const EMAILJS_TEMPLATE_ID = "";
-export const EMAILJS_PUBLIC_KEY = "";
+export const EMAILJS_SERVICE_ID = "service_t9ali1s";
+export const EMAILJS_TEMPLATE_ID = "template_16ns91t";
+export const EMAILJS_PUBLIC_KEY = "6j-ahECZ218NeiUTs";
 
 export const emailjsConfigured =
   Boolean(EMAILJS_SERVICE_ID) && Boolean(EMAILJS_TEMPLATE_ID) && Boolean(EMAILJS_PUBLIC_KEY);
