@@ -180,9 +180,9 @@ export function Hero() {
                 <img
                   src={profile}
                   alt="Portrait of Pankaja Harini R. S"
-                  width={912}
-                  height={912}
-                  className="aspect-square w-full object-cover transition-transform duration-700 hover:scale-105"
+                  width={600}
+                  height={800}
+                  className="aspect-[3/4] w-full object-cover object-top transition-transform duration-700 hover:scale-105"
                 />
                 <div
                   aria-hidden="true"
