@@ -86,6 +86,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Pankaja Harini R. S" },
       { property: "og:type", content: "profile" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "Pankaja Harini R. S | Portfolio" },
+      { name: "twitter:title", content: "Pankaja Harini R. S | Portfolio" },
+      { property: "og:description", content: "Personal portfolio of Pankaja Harini R. S, aspiring software engineer and B.Tech IT student." },
+      { name: "twitter:description", content: "Personal portfolio of Pankaja Harini R. S, aspiring software engineer and B.Tech IT student." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ffd05ada-114d-4d5f-9f06-3d3a3a377eb4/id-preview-8254c37c--12e8534a-086f-4a0b-abf9-972830f963d4.lovable.app-1785573072443.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ffd05ada-114d-4d5f-9f06-3d3a3a377eb4/id-preview-8254c37c--12e8534a-086f-4a0b-abf9-972830f963d4.lovable.app-1785573072443.png" },
     ],
     links: [
       {
