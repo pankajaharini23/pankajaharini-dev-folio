@@ -1,13 +1,21 @@
 import { useState, type FormEvent } from "react";
-import { Check, Copy, Github, Linkedin, Mail, MapPin, Phone, Send } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import { Check, Copy, Github, Linkedin, Loader2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Reveal, Section } from "./Reveal";
 import { EMAIL, LINKEDIN_URL } from "./Navbar";
+import {
+  EMAILJS_PUBLIC_KEY,
+  EMAILJS_SERVICE_ID,
+  EMAILJS_TEMPLATE_ID,
+  emailjsConfigured,
+} from "./emailjs";
 
 const PHONE = "+91 6385101636";
 
 export function Contact() {
   const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const copyEmail = async () => {
     try {
@@ -20,14 +28,45 @@ export function Contact() {
     }
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const subject = encodeURIComponent(`Portfolio enquiry from ${data.get("name")}`);
-    const body = encodeURIComponent(`${data.get("message")}\n\nReply to: ${data.get("email")}`);
-    window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`;
-    toast.success("Opening your email app…");
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const name = String(data.get("name") ?? "").trim().slice(0, 100);
+    const email = String(data.get("email") ?? "").trim().slice(0, 255);
+    const subject = String(data.get("subject") ?? "").trim().slice(0, 150) || "Portfolio enquiry";
+    const message = String(data.get("message") ?? "").trim().slice(0, 2000);
+
+    if (!name || !email || !message) {
+      toast.error("Please fill in your name, email and message.");
+      return;
+    }
+
+    if (!emailjsConfigured) {
+      window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(
+        subject,
+      )}&body=${encodeURIComponent(`${message}\n\nReply to: ${email}`)}`;
+      toast.success("Opening your email app…");
+      return;
+    }
+
+    setSending(true);
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        { from_name: name, from_email: email, subject, message, reply_to: email },
+        { publicKey: EMAILJS_PUBLIC_KEY },
+      );
+      toast.success("Message sent — I'll get back to you soon!");
+      form.reset();
+    } catch {
+      toast.error("Could not send right now. Please email me directly.");
+    } finally {
+      setSending(false);
+    }
   };
+
 
   return (
     <Section
@@ -147,9 +186,11 @@ export function Contact() {
             </label>
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-transform hover:-translate-y-0.5"
+              disabled={sending}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <Send size={16} /> Send Message
+              {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {sending ? "Sending…" : "Send Message"}
             </button>
           </form>
         </Reveal>
